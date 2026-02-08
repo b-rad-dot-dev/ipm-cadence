@@ -1,4 +1,4 @@
-class IpmCadence {
+class IpmCadenceModule {
   constructor(container, config) {
     this.container = container;
     this.config = config;
@@ -68,8 +68,8 @@ class IpmCadence {
 
     // Multiple matches - need to figure out which one we're on in the cycle
     // Use localStorage to track position
-    const lastIndexKey = 'day-schedule-last-index';
-    const lastDateKey = 'day-schedule-last-date';
+    const lastIndexKey = 'ipm-cadence-last-index';
+    const lastDateKey = 'ipm-cadence-last-date';
     const todayStr = new Date().toDateString();
     
     const lastIndex = parseInt(localStorage.getItem(lastIndexKey) || '-1');
@@ -160,4 +160,4 @@ class IpmCadence {
   }
 }
 
-window.IpmCadence = IpmCadence;
+window.IpmCadenceModule = IpmCadenceModule;

@@ -1,0 +1,53 @@
+<div class="day-schedule-container">
+  <div class="today-display">
+    <div class="today-label">Today</div>
+    <div class="today-value">—</div>
+  </div>
+  <div class="tomorrow-display">
+    <div class="tomorrow-label">Tomorrow</div>
+    <div class="tomorrow-value">—</div>
+  </div>
+</div>
+
+<style>
+.day-schedule-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 8px;
+}
+
+.today-display, .tomorrow-display {
+  text-align: center;
+}
+
+.today-label, .tomorrow-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.today-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4a90e2;
+  line-height: 1.2;
+}
+
+.tomorrow-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  line-height: 1.2;
+}
+
+.today-value.none, .tomorrow-value.none {
+  font-style: italic;
+  opacity: 0.5;
+}
+</style>

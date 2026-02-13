@@ -15,7 +15,7 @@ class IpmCadenceModule {
     this.tomorrowValue = this.container.querySelector('.tomorrow-value');
 
     this.updateDisplay();
-    
+
     // Update at midnight
     this.scheduleNextUpdate();
   }
@@ -25,120 +25,129 @@ class IpmCadenceModule {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
+
     const msUntilMidnight = tomorrow - now;
-    
+
     setTimeout(() => {
       this.updateDisplay();
       this.scheduleNextUpdate();
     }, msUntilMidnight);
   }
 
-  getDayOfWeek() {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[new Date().getDay()];
+  getWeekOfYear(date) {
+    // ISO 8601 week number calculation
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7; // Make Sunday = 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum); // Thursday of the current week
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
   }
 
-  getTomorrowDayOfWeek() {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return days[tomorrow.getDay()];
-  }
+  calculateCadenceInterval() {
+    // Count occurrences of each day of week at each position
+    const dayOfWeekMap = {
+      'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+      'Thursday': 4, 'Friday': 5, 'Saturday': 6
+    };
 
-  findCurrentEvent() {
-    const today = this.getDayOfWeek();
-    
-    // Find all matching entries for today
-    const matchingIndices = [];
+    const dayPositions = {}; // { 'Monday': [0, 2, 5], 'Tuesday': [1, 3] }
+
     this.schedule.forEach((item, index) => {
-      if (item.dayOfWeek === today) {
-        matchingIndices.push(index);
+      const day = item.dayOfWeek;
+      if (!dayPositions[day]) {
+        dayPositions[day] = [];
       }
+      dayPositions[day].push(index);
     });
 
-    if (matchingIndices.length === 0) {
-      return { currentIndex: -1, current: null };
+    // Find the maximum occurrences of any single day
+    let maxOccurrences = 0;
+    for (const day in dayPositions) {
+      maxOccurrences = Math.max(maxOccurrences, dayPositions[day].length);
     }
 
-    // If there's only one match, use it
-    if (matchingIndices.length === 1) {
-      return { currentIndex: matchingIndices[0], current: this.schedule[matchingIndices[0]] };
-    }
-
-    // Multiple matches - need to figure out which one we're on in the cycle
-    // Use localStorage to track position
-    const lastIndexKey = 'ipm-cadence-last-index';
-    const lastDateKey = 'ipm-cadence-last-date';
-    const todayStr = new Date().toDateString();
-    
-    const lastIndex = parseInt(localStorage.getItem(lastIndexKey) || '-1');
-    const lastDate = localStorage.getItem(lastDateKey);
-
-    // If it's a new day, find the next matching index after the last one
-    if (lastDate !== todayStr) {
-      let nextIndex = -1;
-      
-      for (let i = 0; i < matchingIndices.length; i++) {
-        if (matchingIndices[i] > lastIndex) {
-          nextIndex = matchingIndices[i];
-          break;
-        }
-      }
-      
-      // If we didn't find one after lastIndex, wrap to the first match
-      if (nextIndex === -1) {
-        nextIndex = matchingIndices[0];
-      }
-
-      localStorage.setItem(lastIndexKey, nextIndex.toString());
-      localStorage.setItem(lastDateKey, todayStr);
-      
-      return { currentIndex: nextIndex, current: this.schedule[nextIndex] };
-    }
-
-    // Same day, return the stored index if it's still valid
-    if (matchingIndices.includes(lastIndex)) {
-      return { currentIndex: lastIndex, current: this.schedule[lastIndex] };
-    }
-
-    // Fallback to first match
-    const index = matchingIndices[0];
-    localStorage.setItem(lastIndexKey, index.toString());
-    localStorage.setItem(lastDateKey, todayStr);
-    return { currentIndex: index, current: this.schedule[index] };
+    // The cadence interval is the max occurrences of any day
+    return maxOccurrences || 1;
   }
 
-  findNextEvent(currentIndex) {
+  buildScheduleChunks() {
+    const cadenceInterval = this.calculateCadenceInterval();
+    const scheduleChunks = [];
+
+    // Initialize chunks with empty arrays of size 7 (one for each day of week)
+    for (let i = 0; i < cadenceInterval; i++) {
+      scheduleChunks.push(new Array(7).fill(null));
+    }
+
+    // Map day names to indices
+    const dayOfWeekMap = {
+      'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+      'Thursday': 4, 'Friday': 5, 'Saturday': 6
+    };
+
+    // Track which occurrence we're on for each day
+    const dayOccurrenceCount = {};
+
+    // Fill in the schedule chunks
+    this.schedule.forEach((item) => {
+      const dayIndex = dayOfWeekMap[item.dayOfWeek];
+
+      if (!dayOccurrenceCount[item.dayOfWeek]) {
+        dayOccurrenceCount[item.dayOfWeek] = 0;
+      }
+
+      const chunkIndex = dayOccurrenceCount[item.dayOfWeek];
+      scheduleChunks[chunkIndex][dayIndex] = item.data;
+
+      dayOccurrenceCount[item.dayOfWeek]++;
+    });
+
+    return { scheduleChunks, cadenceInterval };
+  }
+
+  getCurrentEvent() {
     if (this.schedule.length === 0) return null;
-    if (currentIndex === -1) return null;
 
-    const tomorrow = this.getTomorrowDayOfWeek();
-    
-    // Look for the next event in the schedule starting from currentIndex + 1
-    for (let i = currentIndex + 1; i < this.schedule.length; i++) {
-      if (this.schedule[i].dayOfWeek === tomorrow) {
-        return this.schedule[i];
-      }
+    const { scheduleChunks, cadenceInterval } = this.buildScheduleChunks();
+    const now = new Date();
+    const weekOfYear = this.getWeekOfYear(now);
+    const cadenceIndex = (weekOfYear - 1) % cadenceInterval;
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    return scheduleChunks[cadenceIndex][dayOfWeek];
+  }
+
+  getNextEvent() {
+    if (this.schedule.length === 0) return null;
+
+    const { scheduleChunks, cadenceInterval } = this.buildScheduleChunks();
+    const now = new Date();
+    const weekOfYear = this.getWeekOfYear(now);
+    const cadenceIndex = (weekOfYear - 1) % cadenceInterval;
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // If it's not the last day of the week, return the next day
+    if (dayOfWeek + 1 < 7) {
+      return scheduleChunks[cadenceIndex][dayOfWeek + 1];
     }
-
-    // Wrap around to the beginning
-    for (let i = 0; i <= currentIndex; i++) {
-      if (this.schedule[i].dayOfWeek === tomorrow) {
-        return this.schedule[i];
-      }
+    // If it's the last day of the week, but not the last cadence interval chunk
+    else if (cadenceIndex + 1 < cadenceInterval) {
+      return scheduleChunks[cadenceIndex + 1][0];
     }
-
-    return null;
+    // If it IS the last day of the week and it IS the last cadence interval chunk
+    else {
+      return scheduleChunks[0][0];
+    }
   }
 
   updateDisplay() {
-    const { currentIndex, current } = this.findCurrentEvent();
-    const next = this.findNextEvent(currentIndex);
+    const current = this.getCurrentEvent();
+    const next = this.getNextEvent();
 
     // Update today
     if (current) {
-      this.todayValue.textContent = current.data;
+      this.todayValue.textContent = current;
       this.todayValue.classList.remove('none');
     } else {
       this.todayValue.textContent = '—';
@@ -147,7 +156,7 @@ class IpmCadenceModule {
 
     // Update tomorrow
     if (next) {
-      this.tomorrowValue.textContent = next.data;
+      this.tomorrowValue.textContent = next;
       this.tomorrowValue.classList.remove('none');
     } else {
       this.tomorrowValue.textContent = '—';

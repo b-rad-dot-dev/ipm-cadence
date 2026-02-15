@@ -1,3 +1,29 @@
+// Algorithm:
+// Process this.schedule to find the maximum number of times a given dayOfWeek appears
+// (this determines the cadence interval, e.g. 1 week, 2 weeks, etc...)
+// and call this <cadenceInterval>
+//
+// Split this.schedule into <cadenceInterval> arrays (size 7 to make the next part easy)
+// Get the <week of year - 1> mod <cadenceInterval> to get the array chunk -> <cadenceIndex>
+// Get the current day of week
+//
+// Current Event:
+// scheduleChunks[cadenceIndex][dayOfWeek] = current event
+//
+// Next Event:
+// If it's not the last day of the week, return the next day
+// if dayOfWeek + 1 < 7
+//   return scheduleChunks[cadenceIndex][dayOfWeek + 1]
+//
+// If it's the last day of the week, but not the last cadence interval chunk, move to the next cadence
+// interval chunk and reset the day back to the start of the week
+// else if cadenceIndex + 1 < cadenceInterval
+//   return scheduleChunks[cadenceIndex + 1][0]
+//
+// If it IS the last day of the week and it IS the last cadence interval chunk, go back to the beginning
+// else
+//   return scheduleChunks[0][0]
+
 class IpmCadenceModule {
   static DEBUG = false;
   constructor(container, config) {

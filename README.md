@@ -18,6 +18,7 @@ Displays a rotating schedule based on day of week.
   "x": 0,
   "y": 0,
   "config": {
+    "mondayStartOfWeek": false,
     "schedule": [
       {"dayOfWeek": "Monday", "data": "Chest"},
       {"dayOfWeek": "Wednesday", "data": "Back"},
@@ -31,6 +32,7 @@ Displays a rotating schedule based on day of week.
 ```
 
 **Properties:**
+- `mondayStartOfWeek` - Boolean (default: `false`), used for week of year calculation
 - `schedule` - Array of schedule items
     - `dayOfWeek` - Day name (e.g., "Monday", "Tuesday")
     - `data` - Text to display for that day

@@ -1,4 +1,5 @@
 class IpmCadenceModule {
+  static DEBUG = false;
   constructor(container, config) {
     this.container = container;
     this.config = config;
@@ -37,7 +38,13 @@ class IpmCadenceModule {
   getWeekOfYear(date) {
     // ISO 8601 week number calculation
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7; // Make Sunday = 7
+    let dayNum;
+    // This affects the calculation for the week of year, might throw the schedule off
+    if(this.config?.mondayStartOfWeek) {
+      dayNum = d.getUTCDay() || 7; // Make Sunday = 7
+    } else {
+      dayNum = d.getUTCDay();
+    }
     d.setUTCDate(d.getUTCDate() + 4 - dayNum); // Thursday of the current week
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
@@ -110,10 +117,18 @@ class IpmCadenceModule {
     if (this.schedule.length === 0) return null;
 
     const { scheduleChunks, cadenceInterval } = this.buildScheduleChunks();
+    this.debugLog("Schedule:");
+    this.debugLog(scheduleChunks);
+    this.debugLog(`Cadence Interval: ${cadenceInterval}`);
     const now = new Date();
     const weekOfYear = this.getWeekOfYear(now);
     const cadenceIndex = (weekOfYear - 1) % cadenceInterval;
     const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    this.debugLog(`Week of year: ${weekOfYear}`);
+    this.debugLog(`Cadence index: ${cadenceIndex}`);
+    this.debugLog(`Day of week: ${dayOfWeek}`);
+    this.debugLog(`Current event ([${cadenceIndex}][${dayOfWeek}]): ${scheduleChunks[cadenceIndex][dayOfWeek]}`);
 
     return scheduleChunks[cadenceIndex][dayOfWeek];
   }
@@ -127,16 +142,21 @@ class IpmCadenceModule {
     const cadenceIndex = (weekOfYear - 1) % cadenceInterval;
     const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
 
+    this.debugLog(`Getting next event...`);
+
     // If it's not the last day of the week, return the next day
     if (dayOfWeek + 1 < 7) {
+      this.debugLog(`Next event is in the same cadence week: ${cadenceIndex},${dayOfWeek + 1} = ${scheduleChunks[cadenceIndex][dayOfWeek + 1]}`);
       return scheduleChunks[cadenceIndex][dayOfWeek + 1];
     }
     // If it's the last day of the week, but not the last cadence interval chunk
     else if (cadenceIndex + 1 < cadenceInterval) {
+      this.debugLog(`Next event is in the next cadence week: ${cadenceIndex+1},0 = ${scheduleChunks[cadenceIndex+ 1 ][0]}`);
       return scheduleChunks[cadenceIndex + 1][0];
     }
     // If it IS the last day of the week and it IS the last cadence interval chunk
     else {
+      this.debugLog(`Next event is back at the beginning: 0,0 = ${scheduleChunks[0][0]}`);
       return scheduleChunks[0][0];
     }
   }
@@ -166,6 +186,12 @@ class IpmCadenceModule {
 
   destroy() {
     // Cleanup if needed
+  }
+
+  debugLog(msg) {
+    if(IpmCadenceModule.DEBUG) {
+      console.log(msg);
+    }
   }
 }
 

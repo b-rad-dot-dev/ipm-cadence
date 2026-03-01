@@ -24,22 +24,31 @@
 // else
 //   return scheduleChunks[0][0]
 
-class IpmCadenceModule {
+export default class IpmCadenceModule {
   static DEBUG = false;
   constructor(container, config) {
-    this.container = container;
+    this.wrapper = container;
     this.config = config;
     this.schedule = config.schedule || [];
     this.init();
   }
 
   async init() {
-    const response = await fetch('/modules/ipm-cadence/module.html');
-    const html = await response.text();
-    this.container.innerHTML = html;
+    this.shadow = this.wrapper.attachShadow({ mode: "open" });
 
-    this.todayValue = this.container.querySelector('.today-value');
-    this.tomorrowValue = this.container.querySelector('.tomorrow-value');
+    // Load CSS file
+    const cssText = await fetch(new URL("./styles.css", import.meta.url))
+        .then(res => res.text());
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(cssText);
+    this.shadow.adoptedStyleSheets = [sheet];
+
+    // Load HTML
+    const html = await fetch(new URL("./module.html", import.meta.url))
+    this.shadow.innerHTML = await html.text();
+
+    this.todayValue = this.shadow.querySelector('.today-value');
+    this.tomorrowValue = this.shadow.querySelector('.tomorrow-value');
 
     this.updateDisplay();
 
@@ -220,5 +229,3 @@ class IpmCadenceModule {
     }
   }
 }
-
-window.IpmCadenceModule = IpmCadenceModule;

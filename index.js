@@ -34,21 +34,19 @@ export default class IpmCadenceModule {
   }
 
   async init() {
-    this.shadow = this.wrapper.attachShadow({ mode: "open" });
-
     // Load CSS file
     const cssText = await fetch(new URL("./styles.css", import.meta.url))
         .then(res => res.text());
     const sheet = new CSSStyleSheet();
     sheet.replaceSync(cssText);
-    this.shadow.adoptedStyleSheets = [sheet];
+    this.wrapper.adoptedStyleSheets.push(sheet);
 
     // Load HTML
     const html = await fetch(new URL("./module.html", import.meta.url))
-    this.shadow.innerHTML = await html.text();
+    this.wrapper.innerHTML = await html.text();
 
-    this.todayValue = this.shadow.querySelector('.today-value');
-    this.tomorrowValue = this.shadow.querySelector('.tomorrow-value');
+    this.todayValue = this.wrapper.querySelector('.today-value');
+    this.tomorrowValue = this.wrapper.querySelector('.tomorrow-value');
 
     this.updateDisplay();
 

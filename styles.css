@@ -4,6 +4,24 @@
     box-sizing: border-box;
 }
 
+::-webkit-scrollbar {
+    width: var(--scrollbar-base-size);
+    height: var(--scrollbar-base-size);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--scrollbar-border-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-background-hover);
+}
+
 .container {
     color: var(--font-color-default);
     font-size: var(--font-size);
